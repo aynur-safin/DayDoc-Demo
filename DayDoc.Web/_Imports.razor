@@ -1,0 +1,19 @@
+﻿@using System.Net.Http
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Components.Routing
+@using Microsoft.AspNetCore.Components.Web
+@using Microsoft.AspNetCore.Components.Web.Virtualization
+@using Microsoft.JSInterop
+@using FastEndpoints;
+@using Blazored.FluentValidation
+@using DayDoc.Web
+@using DayDoc.Web.Models
+@using DayDoc.Web.Pages._Shared
+@using DayDoc.Web.Pages._Components
+@using DayDoc.Web.Services
+@inherits ApplicationComponentBase
+
+@*https://stackoverflow.com/a/65743092*@
+@attribute [Authorize]

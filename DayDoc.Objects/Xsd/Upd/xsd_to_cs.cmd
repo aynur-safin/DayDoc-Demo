@@ -1,0 +1,1 @@
+xsd .\ON_NSCHFDOPPR.xsd /c /f /n:DayDoc.Objects.Xsd.Upd.ON_NSCHFDOPPR

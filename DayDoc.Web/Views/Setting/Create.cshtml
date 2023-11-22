@@ -1,0 +1,40 @@
+﻿@model DayDoc.Web.Models.Setting
+
+@{
+    ViewData["Title"] = "Setting: Create";
+}
+
+<h1>Create</h1>
+<div>
+    <a asp-action="Index">Back to List</a>
+</div>
+<hr />
+<div class="row">
+    <div class="col-md-6">
+        <form asp-action="Create">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <div class="mb-3">
+                <label asp-for="Name" class="form-label"></label>
+                <input asp-for="Name" class="form-control" />
+                <span asp-validation-for="Name" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="OwnCompanyId" class="form-label"></label>
+                <select asp-for="OwnCompanyId" class ="form-control" asp-items="ViewBag.OwnCompanyId"></select>
+                <span asp-validation-for="OwnCompanyId" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="WorkName" class="form-label"></label>
+                <textarea asp-for="WorkName" class="form-control" rows="5"></textarea>
+                <span asp-validation-for="WorkName" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <input type="submit" value="Create" class="btn btn-primary" />
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

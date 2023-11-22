@@ -1,0 +1,131 @@
+﻿@model DayDoc.Web.Models.Company
+
+@{
+    ViewData["Title"] = "Company: Create";
+}
+
+<h1>@ViewData["Title"]</h1>
+<div>
+    <a asp-action="Index">Back to List</a>
+</div>
+<hr />
+<form asp-action="Create">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+    <div class="row">
+        <div class="col-md-6">
+
+            <div class="mb-3">
+                <label asp-for="CompType" class="form-label"></label>
+                <select asp-for="CompType" class="form-control" asp-items="Html.GetEnumSelectList<CompType>()"></select>
+                <span asp-validation-for="CompType" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Name" class="form-label"></label>
+                <input asp-for="Name" class="form-control" />
+                <span asp-validation-for="Name" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Address" class="form-label"></label>
+                <input asp-for="Address" class="form-control" />
+                <span asp-validation-for="Address" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Description" class="form-label"></label>
+                <input asp-for="Description" class="form-control" />
+                <span asp-validation-for="Description" class="text-danger"></span>
+            </div>
+
+            <hr />
+
+            <div class="mb-3">
+                <label asp-for="INN" class="form-label"></label>
+                <input asp-for="INN" class="form-control" />
+                <span asp-validation-for="INN" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="KPP" class="form-label"></label>
+                <input asp-for="KPP" class="form-control" />
+                <span asp-validation-for="KPP" class="text-danger"></span>
+            </div>
+
+            <hr />
+
+            <div class="mb-3">
+                <label asp-for="OGRN" class="form-label"></label>
+                <input asp-for="OGRN" class="form-control" />
+                <span asp-validation-for="OGRN" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="OGRN_Date" class="form-label"></label>
+                <input asp-for="OGRN_Date" class="form-control" />
+                <span asp-validation-for="OGRN_Date" class="text-danger"></span>
+            </div>
+
+        </div>
+        <div class="col-md-6">
+
+            <div class="card">
+                <div class="card-header">
+                    ЭДО
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label asp-for="EdoId" class="form-label"></label>
+                        <input asp-for="EdoId" class="form-control" />
+                        <span asp-validation-for="EdoId" class="text-danger"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="EdoCompanyId" class="form-label"></label>
+                        <select asp-for="EdoCompanyId" class="form-control" asp-items="ViewBag.EdoCompanyId">
+                            <option selected="selected" value="">...</option>
+                        </select>
+                        <span asp-validation-for="EdoCompanyId" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-header">
+                    Подписант
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label asp-for="Signatory_Position" class="form-label"></label>
+                        <input asp-for="Signatory_Position" class="form-control" />
+                        <span asp-validation-for="Signatory_Position" class="text-danger"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="Signatory_Basis" class="form-label"></label>
+                        <input asp-for="Signatory_Basis" class="form-control" />
+                        <span asp-validation-for="Signatory_Basis" class="text-danger"></span>
+                    </div>
+                    <hr />
+                    <div class="mb-3">
+                        <label asp-for="Signatory_LastName" class="form-label"></label>
+                        <input asp-for="Signatory_LastName" class="form-control" />
+                        <span asp-validation-for="Signatory_LastName" class="text-danger"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="Signatory_FirstName" class="form-label"></label>
+                        <input asp-for="Signatory_FirstName" class="form-control" />
+                        <span asp-validation-for="Signatory_FirstName" class="text-danger"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="Signatory_MiddleName" class="form-label"></label>
+                        <input asp-for="Signatory_MiddleName" class="form-control" />
+                        <span asp-validation-for="Signatory_MiddleName" class="text-danger"></span>
+                    </div>
+                </div>                
+            </div>            
+        </div>                
+    </div>            
+    <div class="mb-3">
+        <input type="submit" value="Create" class="btn btn-primary" />
+    </div>
+</form>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

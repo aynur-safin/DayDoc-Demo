@@ -1,0 +1,36 @@
+﻿@inject TokenProvider TokenProvider
+@inject NavigationManager NavigationManager
+
+@code {
+    [Parameter]
+    public InitialApplicationState? InitialState { get; set; }
+
+    protected override Task OnInitializedAsync()
+    {
+        TokenProvider.AccessToken = InitialState?.AccessToken;
+        TokenProvider.RefreshToken = InitialState?.RefreshToken;
+        TokenProvider.XsrfToken = InitialState?.XsrfToken;
+
+        return base.OnInitializedAsync();
+    }
+}
+
+<CascadingAuthenticationState>
+    <Router AppAssembly="@typeof(App).Assembly">
+        <Found Context="routeData">
+            @*<AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />*@
+            <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
+                <NotAuthorized>
+                    <RedirectToLogin /> @*https://stackoverflow.com/a/65743092*@
+                </NotAuthorized>
+            </AuthorizeRouteView>
+            <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+        </Found>
+        <NotFound>
+            <PageTitle>Not found</PageTitle>
+            <LayoutView Layout="@typeof(MainLayout)">
+                <p role="alert">Sorry, there's nothing at this address.</p>
+            </LayoutView>
+        </NotFound>
+    </Router>
+</CascadingAuthenticationState>

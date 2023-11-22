@@ -1,0 +1,1 @@
+xsd .\DP_REZRUISP.xsd /c /f /n:DayDoc.Objects.Xsd.Act.DP_REZRUISP

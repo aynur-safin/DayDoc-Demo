@@ -1,0 +1,89 @@
+﻿@model DayDoc.Web.Models.Doc
+
+@{
+    ViewData["Title"] = "Doc: Create";
+}
+
+<h1>@ViewData["Title"]</h1>
+<div>
+    <a asp-action="Index">Back to List</a>
+</div>
+<hr />
+<form asp-action="Create">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+    <div class="row">
+        <div class="col-md-6">
+            <div class="mb-3">
+                <label asp-for="DocType" class="form-label"></label>
+                <select asp-for="DocType" class="form-control" asp-items="Html.GetEnumSelectList<DocType>()"></select>
+                <span asp-validation-for="DocType" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="OwnCompanyId" class="form-label"></label>
+                <select asp-for="OwnCompanyId" class="form-control" asp-items="ViewBag.OwnCompanyId"></select>
+                <span asp-validation-for="OwnCompanyId" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="ContragentId" class="form-label"></label>
+                <select asp-for="ContragentId" class="form-control" asp-items="ViewBag.ContragentId">
+                    <option selected="selected" value="">...</option>
+                </select>
+                <span asp-validation-for="ContragentId" class="text-danger"></span>
+            </div>
+            @*<div class="mb-3">
+                <label asp-for="Name" class="form-label"></label>
+                <input asp-for="Name" class="form-control" />
+                <span asp-validation-for="Name" class="text-danger"></span>
+            </div>*@
+            <div class="mb-3">
+                <label asp-for="Description" class="form-label"></label>
+                <textarea asp-for="Description" class="form-control" rows="5"></textarea>
+                <span asp-validation-for="Description" class="text-danger"></span>
+            </div>
+            <div class="card">
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label asp-for="Dogovor_Num" class="form-label"></label>
+                        <input asp-for="Dogovor_Num" class="form-control" />
+                        <span asp-validation-for="Dogovor_Num" class="text-danger"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="Dogovor_Date" class="form-label"></label>
+                        <input asp-for="Dogovor_Date" class="form-control" />
+                        <span asp-validation-for="Dogovor_Date" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="mb-3">
+                <label asp-for="Num" class="form-label"></label>
+                <input asp-for="Num" class="form-control" />
+                <span asp-validation-for="Num" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Date" class="form-label"></label>
+                <input asp-for="Date" class="form-control" />
+                <span asp-validation-for="Date" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Sum" class="form-label"></label>
+                <input asp-for="Sum" class="form-control" />
+                <span asp-validation-for="Sum" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="WorkName" class="form-label"></label>
+                <textarea asp-for="WorkName" class="form-control" rows="5"></textarea>
+                <span asp-validation-for="WorkName" class="text-danger"></span>
+            </div>                       
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <input type="submit" value="Create" class="btn btn-primary" />
+    </div>
+</form>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

@@ -1,0 +1,314 @@
+﻿@page "/company/create"
+@page "/company/edit/{id:int}"
+@page "/company/details/{id:int}"
+@using DayDoc.Web.Endpoints.Models;
+@inject NavigationManager Navigation
+@inject ILogger<Edit> Logger
+@*@inject IHttpClientFactory clientFactory*@
+@*@inject TokenProvider tokenProvider*@
+@inject DayDoc.Web.Endpoints.HttpClients.ApiClient apiService
+@*@attribute [Authorize]*@
+
+@code {
+    [Parameter]
+    public int? Id { get; set; }
+
+    string _title = "";
+    static string _titlePrefix = "Компания: ";
+    static string _routeEntity = "company";
+    static string _parentRoute = $"/{_routeEntity}";
+
+    Company? _company;    
+
+    #region Select List Items
+
+    Dictionary<int, string>? _edoCompanies;
+    async Task<Dictionary<int, string>?> GetEdoCompanies()
+    {
+        var req = new CompanyListRequest { CompType = CompType.Edo };
+        var res = await apiService.CompanyListAsync(req.Filter, req.CompType , CancellationToken);
+        //var res = await new CompanyListRequest { CompType = CompType.Edo }.ExecuteAsync(CancellationToken);
+
+        return res?.Companies?.ToDictionary(k => k.Id, v => v.Name);
+    }
+
+    Dictionary<CompType, string> _compTypes = Enum.GetValues(typeof(CompType))
+               .Cast<CompType>()
+               .ToDictionary(t => t, t => t.ToString());
+
+    #endregion
+
+    FluentValidationValidator? _fluentValidator;
+
+    EditMode _editMode = EditMode.Details;
+    bool _isReadonly = false;
+
+    //protected override async Task OnParametersSetAsync()
+    protected override async Task OnInitializedAsync()
+    {                
+        _editMode
+            = Navigation.Uri.Contains("create", StringComparison.OrdinalIgnoreCase) ? EditMode.Create
+            : Navigation.Uri.Contains("edit", StringComparison.OrdinalIgnoreCase) ? EditMode.Edit
+            : EditMode.Details;
+
+        _title = _titlePrefix;
+        switch (_editMode)
+        {
+            case EditMode.Create: _title += "Создание"; break;
+            case EditMode.Edit: _title += "Изменение"; break;
+            case EditMode.Details:
+                _title += "Просмотр";
+                _isReadonly = true;
+                break;
+        }
+
+        switch (_editMode)
+        {
+            case EditMode.Create:
+                _company = new();
+                break;
+
+            case EditMode.Edit:
+            case EditMode.Details:
+                {
+                    if(Id != null)
+                    {
+                        var req = new CompanyGetRequest { Id = (int)Id };
+                        var res = await apiService.CompanyGetAsync(req.Id, CancellationToken);
+                        //var res = await new CompanyGetRequest { Id = (int)Id }.ExecuteAsync(CancellationToken);
+                        if (res?.Company != null)
+                            _company = res.Company;
+                    }
+
+                    //if(_company == null)
+                    //    Navigation.NavigateTo(_parentRoute);
+
+                    break;                
+                }
+        }
+
+        _edoCompanies = await GetEdoCompanies();
+    }
+
+    string? _alertMsg;
+    bool _alertVisible = false;
+
+    void ShowAlert(string msg)
+    {
+        _alertMsg = msg;
+        _alertVisible = true;
+    }
+    void OnAlertClose() => _alertVisible = false; 
+
+    async Task SubmitAsync()
+    {
+        //Console.WriteLine($"Name: {company.Name}");
+
+        if (_fluentValidator != null && await _fluentValidator.ValidateAsync())
+        {
+            try
+            {                
+                switch (_editMode)
+                {
+                    case EditMode.Create:
+                        {
+                            if (_company != null)
+                            {
+                                var res = await apiService.CompanyCreateAsync(new CompanyCreateRequest { Company = _company }, CancellationToken);
+                                Id = res?.Company?.Id;
+
+                                /*
+                                HttpClient http = clientFactory.CreateClient();
+                                var token = tokenProvider.AccessToken;
+                                var request = new HttpRequestMessage(HttpMethod.Post,
+                                    "https://localhost:7155/api/company/create");
+                                request.Headers.Add("Authorization", $"Bearer {token}");
+                                request.Content = JsonContent.Create(new CreateEndpoint.Request { Company = _company });
+                                var response = await http.SendAsync(request, CancellationToken);
+                                response.EnsureSuccessStatusCode();
+                                Id = (await response.Content.ReadAsAsync<GetEndpoint.Response>())?.Company?.Id; // (await response.Content.ReadFromJsonAsync<GetEndpoint.Response>())?.Company?.Id;
+                                */
+
+                                //var res = await new CreateEndpoint.Request { Company = _company }.ExecuteAsync(CancellationToken);
+                                //Id = res?.Company?.Id;
+                            }
+                            break;
+                        }
+
+                    case EditMode.Edit:
+                    {
+                        var res = await apiService.CompanyUpdateAsync(new CompanyUpdateRequest { Company = _company }, CancellationToken);
+                        //var res = await new CompanyUpdateRequest { Company = _company }.ExecuteAsync(CancellationToken);
+                        break;
+                    }
+
+                    case EditMode.Details: break;
+                }     
+
+                Navigation.NavigateTo($"{_parentRoute}/{Id}");
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError($"{Navigation.Uri} | {nameof(SubmitAsync)}: {ex.Message}");
+                ShowAlert(ex.Message);
+                //base.StateHasChanged();
+            }
+        }
+    }
+}
+
+<PageTitle>@_title</PageTitle>
+<h1>@_title</h1>
+<hr />
+
+<Alert Msg="@_alertMsg" Visible=@_alertVisible OnCloseCallback=@OnAlertClose />
+
+@*<p>Token: @tokenProvider.AccessToken</p>*@
+
+@if(_company == null)
+{
+    <p><em>Не найдено!</em></p>
+    <a href=@($"{_parentRoute}")>Назад</a>
+}
+else
+{
+<div class="row"> @*justify-content-center*@
+    <div class="col-xl-8 col-md-12">
+        <EditForm Model="@_company" OnValidSubmit="SubmitAsync">
+
+            @*<div asp-validation-summary="ModelOnly" class="text-danger"></div>*@
+            <FluentValidationValidator @ref="_fluentValidator" DisableAssemblyScanning="@true" />
+            <ValidationSummary class="text-danger" />
+
+            <div class="row">
+                <div class="col-md-6">
+
+                    <div class="mb-3">
+                        <Label For="() => _company.CompType" class="form-label"></Label>
+                        <InputSelect readonly="@_isReadonly" @bind-Value="_company.CompType" class="form-control">
+                            @foreach (var ct in _compTypes)
+                            {
+                                <option value="@ct.Key">@ct.Value</option>
+                            }
+                        </InputSelect>
+                        <ValidationMessage For="@(() => _company.CompType)" class="text-danger" />
+                    </div>
+
+                    <div class="mb-3">
+                        <Label For="() => _company.Name" class="form-label"></Label>
+                        <InputText readonly="@_isReadonly" @bind-Value="_company.Name" class="form-control" />
+                        <ValidationMessage For="@(() => _company.Name)" class="text-danger" />
+                    </div>
+
+                    <div class="mb-3">
+                        <Label For="() => _company.Address" class="form-label"></Label>
+                        <InputText readonly="@_isReadonly" @bind-Value="_company.Address" class="form-control" />
+                        <ValidationMessage For="@(() => _company.Address)" class="text-danger" />
+                    </div>
+                    <div class="mb-3">
+                        <Label For="() => _company.Description" class="form-label"></Label>
+                        <InputText readonly="@_isReadonly" @bind-Value="_company.Description" class="form-control" />
+                        <ValidationMessage For="@(() => _company.Description)" class="text-danger" />
+                    </div>
+
+                    <hr />
+
+                    <div class="mb-3">
+                        <Label For="() => _company.INN" class="form-label"></Label>
+                        <InputText readonly="@_isReadonly" @bind-Value="_company.INN" class="form-control" />
+                        <ValidationMessage For="@(() => _company.INN)" class="text-danger" />
+                    </div>
+                    <div class="mb-3">
+                        <Label For="() => _company.KPP" class="form-label"></Label>
+                        <InputText readonly="@_isReadonly" @bind-Value="_company.KPP" class="form-control" />
+                        <ValidationMessage For="@(() => _company.KPP)" class="text-danger" />
+                    </div>
+
+                    <hr />
+
+                    <div class="mb-3">
+                        <Label For="() => _company.OGRN" class="form-label"></Label>
+                        <InputText readonly="@_isReadonly" @bind-Value="_company.OGRN" class="form-control" />
+                        <ValidationMessage For="@(() => _company.OGRN)" class="text-danger" />
+                    </div>
+                    <div class="mb-3">
+                        <Label For="() => _company.OGRN_Date" class="form-label"></Label>
+                        <InputDate readonly="@_isReadonly" @bind-Value="_company.OGRN_Date" class="form-control" />
+                        <ValidationMessage For="@(() => _company.OGRN_Date)" class="text-danger" />
+                    </div>
+
+                </div>
+                <div class="col-md-6">
+
+                    <div class="card">
+                        <div class="card-header">
+                            ЭДО
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <Label For="() => _company.EdoId" class="form-label"></Label>
+                                <InputText readonly="@_isReadonly" @bind-Value="_company.EdoId" class="form-control" />
+                                <ValidationMessage For="@(() => _company.EdoId)" class="text-danger" />
+                            </div>
+                            <div class="mb-3">
+                                <Label For="() => _company.EdoCompanyId" class="form-label"></Label>
+                                <InputSelect readonly="@_isReadonly" @bind-Value="_company.EdoCompanyId" class="form-control">
+                                    <option value="">...</option>
+                                    @* <option value="-1">Fail test</option> *@
+                                    @if (_edoCompanies != null)
+                                    {
+                                        foreach (var edoComp in _edoCompanies)
+                                        {
+                                            <option value="@edoComp.Key">@edoComp.Value</option>
+                                        }
+                                    }
+                                </InputSelect>
+                                <ValidationMessage For="@(() => _company.EdoCompanyId)" class="text-danger" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card mt-3">
+                        <div class="card-header">
+                            Подписант
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <Label For="() => _company.Signatory_Position" class="form-label"></Label>
+                                <InputText readonly="@_isReadonly" @bind-Value="_company.Signatory_Position" class="form-control" />
+                                <ValidationMessage For="@(() => _company.Signatory_Position)" class="text-danger" />
+                            </div>
+                            <div class="mb-3">
+                                <Label For="() => _company.Signatory_Basis" class="form-label"></Label>
+                                <InputText readonly="@_isReadonly" @bind-Value="_company.Signatory_Basis" class="form-control" />
+                                <ValidationMessage For="@(() => _company.Signatory_Basis)" class="text-danger" />
+                            </div>
+                            <hr />
+                            <div class="mb-3">
+                                <Label For="() => _company.Signatory_LastName" class="form-label"></Label>
+                                <InputText readonly="@_isReadonly" @bind-Value="_company.Signatory_LastName" class="form-control" />
+                                <ValidationMessage For="@(() => _company.Signatory_LastName)" class="text-danger" />
+                            </div>
+                            <div class="mb-3">
+                                <Label For="() => _company.Signatory_FirstName" class="form-label"></Label>
+                                <InputText readonly="@_isReadonly" @bind-Value="_company.Signatory_FirstName" class="form-control" />
+                                <ValidationMessage For="@(() => _company.Signatory_FirstName)" class="text-danger" />
+                            </div>
+                            <div class="mb-3">
+                                <Label For="() => _company.Signatory_MiddleName" class="form-label"></Label>
+                                <InputText readonly="@_isReadonly" @bind-Value="_company.Signatory_MiddleName" class="form-control" />
+                                <ValidationMessage For="@(() => _company.Signatory_MiddleName)" class="text-danger" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="my-3">
+                <input type="submit" value="OK" class="btn btn-primary px-4" />
+                <a href=@($"{_parentRoute}/{Id}") class="btn btn-light">Отмена</a>
+            </div>
+        </EditForm>
+    </div>
+</div>
+}
+

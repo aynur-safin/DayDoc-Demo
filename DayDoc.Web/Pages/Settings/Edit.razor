@@ -1,0 +1,183 @@
+﻿@page "/setting/create"
+@page "/setting/edit/{id:int}"
+@page "/setting/details/{id:int}"
+@using DayDoc.Web.Endpoints.Models;
+@inject NavigationManager Navigation
+@inject ILogger<Edit> Logger
+
+@code {
+    [Parameter]
+    public int? Id { get; set; }
+
+    string _title = "";
+    static string _titlePrefix = "Настройка: ";
+    static string _routeEntity = "setting";
+    static string _parentRoute = $"/{_routeEntity}";
+
+    Setting? _setting;
+
+    #region Select List Items
+
+    Dictionary<int, string>? _owns;
+    async Task<Dictionary<int, string>?> GetOwnCompanies()
+    {
+        var res = await new CompanyListRequest { CompType = CompType.Own }.ExecuteAsync(CancellationToken);
+        return res?.Companies?.ToDictionary(k => k.Id, v => v.Name);
+    }
+
+    #endregion
+
+    FluentValidationValidator? _fluentValidator;
+
+    EditMode _editMode = EditMode.Details;
+    bool _isReadonly = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _editMode
+            = Navigation.Uri.Contains("create", StringComparison.OrdinalIgnoreCase) ? EditMode.Create
+            : Navigation.Uri.Contains("edit", StringComparison.OrdinalIgnoreCase) ? EditMode.Edit
+            : EditMode.Details;
+
+        _title = _titlePrefix;
+        switch (_editMode)
+        {
+            case EditMode.Create: _title += "Создание"; break;
+            case EditMode.Edit: _title += "Изменение"; break;
+            case EditMode.Details:
+                _title += "Просмотр";
+                _isReadonly = true;
+                break;
+        }
+
+        switch (_editMode)
+        {
+            case EditMode.Create:
+                _setting = new();
+                break;
+
+            case EditMode.Edit:
+            case EditMode.Details:
+                {
+                    if(Id != null)
+                    {
+                        var res = await new SettingGetRequest { Id = (int)Id }.ExecuteAsync(CancellationToken);
+                        if (res?.Setting != null)
+                            _setting = res.Setting;                        
+                    }
+                                        
+                    break;                
+                }
+        }
+
+        _owns = await GetOwnCompanies();
+    }
+
+    string? _alertMsg;
+    bool _alertVisible = false;
+    void ShowAlert(string msg)
+    {
+        _alertMsg = msg;
+        _alertVisible = true;
+    }
+    void OnAlertClose() => _alertVisible = false; 
+
+    async Task SubmitAsync()
+    {
+        //Console.WriteLine($"Name: {company.Name}");
+
+        if (_fluentValidator != null && await _fluentValidator.ValidateAsync())
+        {
+            try
+            {                
+                switch (_editMode)
+                {
+                    case EditMode.Create:
+                    {
+                        var res = await new SettingCreateRequest { Setting = _setting }.ExecuteAsync(CancellationToken);
+                        Id = res?.Setting?.Id;
+                        break;
+                    }
+
+                    case EditMode.Edit:
+                    {
+                        var res = await new SettingUpdateRequest { Setting = _setting }.ExecuteAsync(CancellationToken);
+                        break;
+                    }
+
+                    case EditMode.Details: break;
+                }     
+
+                Navigation.NavigateTo($"{_parentRoute}/{Id}");
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError($"{Navigation.Uri} | {nameof(SubmitAsync)}: {ex.Message}");
+                ShowAlert(ex.Message);
+                //base.StateHasChanged();
+            }
+        }
+    }
+}
+
+<PageTitle>@_title</PageTitle>
+<h1>@_title</h1>
+<hr />
+
+<Alert Msg="@_alertMsg" Visible=@_alertVisible OnCloseCallback=@OnAlertClose />
+
+@if (_setting == null)
+{
+    <p><em>Не найдено!</em></p>
+    <a href=@($"{_parentRoute}")>Назад</a>
+}
+else
+{
+<div class="row"> @*justify-content-center*@
+    <div class="col-xl-8 col-md-12">
+        <EditForm Model="@_setting" OnValidSubmit="SubmitAsync">
+
+            @*<div asp-validation-summary="ModelOnly" class="text-danger"></div>*@
+            <FluentValidationValidator @ref="_fluentValidator" DisableAssemblyScanning="@true" />
+            <ValidationSummary class="text-danger" />
+
+            <div class="row">
+                <div class="col-md-6">
+
+                    <div class="mb-3">
+                        <Label For="() => _setting.Name" class="form-label"></Label>
+                        <InputText readonly="@_isReadonly" @bind-Value="_setting.Name" class="form-control" />
+                        <ValidationMessage For="@(() => _setting.Name)" class="text-danger" />
+                    </div>
+
+                    <div class="mb-3">
+                        <Label For="() => _setting.OwnCompanyId" class="form-label"></Label>
+                        <InputSelect readonly="@_isReadonly" @bind-Value="_setting.OwnCompanyId" class="form-control">
+                            @* <option value="-1">Fail test</option> *@
+                            @if (_owns != null)
+                            {
+                                foreach (var own in _owns)
+                                {
+                                    <option value="@own.Key">@own.Value</option>
+                                }
+                            }
+                        </InputSelect>
+                        <ValidationMessage For="@(() => _setting.OwnCompanyId)" class="text-danger" />
+                    </div>
+
+                    <div class="mb-3">
+                        <Label For="() => _setting.WorkName" class="form-label"></Label>
+                        <InputTextArea readonly="@_isReadonly" @bind-Value="_setting.WorkName" class="form-control" rows="5"></InputTextArea>
+                        <ValidationMessage For="@(() => _setting.WorkName)" class="text-danger" />
+                    </div>
+
+                </div>
+            </div>
+            <div class="my-3">
+                <input type="submit" value="OK" class="btn btn-primary px-4" />
+                <a href=@($"{_parentRoute}/{Id}") class="btn btn-light">Отмена</a>
+            </div>
+        </EditForm>
+    </div>
+</div>
+}

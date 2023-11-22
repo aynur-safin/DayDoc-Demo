@@ -1,0 +1,111 @@
+﻿@model DayDoc.Web.Models.Doc
+
+@{
+    ViewData["Title"] = "Doc: Details";
+}
+
+<h1>@ViewData["Title"]</h1>
+<div>
+    <a asp-action="Edit" asp-route-id="@Model?.Id">Edit</a> |
+    <a asp-action="Index">Back to List</a>
+</div>
+<hr />
+<p class="text-danger">@ViewData["ErrorMessage"]</p>
+<div class="row">
+    <div class="col-md-6">
+        <dl class="row">
+            <dt class = "col-sm-4">
+                @Html.DisplayNameFor(model => model.DocType)
+            </dt>
+            <dd class = "col-sm-8">
+                @Html.DisplayFor(model => model.DocType)
+            </dd>
+            <dt class = "col-sm-4">
+                @Html.DisplayNameFor(model => model.Num)
+            </dt>
+            <dd class = "col-sm-8">
+                @Html.DisplayFor(model => model.Num)
+            </dd>
+            <dt class = "col-sm-4">
+                @Html.DisplayNameFor(model => model.Date)
+            </dt>
+            <dd class = "col-sm-8">
+                @Html.DisplayFor(model => model.Date)
+            </dd>
+            <dt class = "col-sm-4">
+                @Html.DisplayNameFor(model => model.OwnCompany)
+            </dt>
+            <dd class = "col-sm-8">
+                @Model?.OwnCompany?.Name
+            </dd>
+            <dt class = "col-sm-4">
+                @Html.DisplayNameFor(model => model.Contragent)
+            </dt>
+            <dd class = "col-sm-8">
+                @Model?.Contragent?.Name
+            </dd>
+            <dt class = "col-sm-4">
+                @Html.DisplayNameFor(model => model.Contragent.Description)
+            </dt>
+            <dd class = "col-sm-8">
+                @Model?.Contragent?.Description
+            </dd>
+            <dt class = "col-sm-4">
+                @Html.DisplayNameFor(model => model.Contragent.EdoId)
+            </dt>
+            <dd class = "col-sm-8">
+                @Model?.Contragent?.EdoId
+            </dd>
+            <dt class = "col-sm-4">
+                @Html.DisplayNameFor(model => model.Sum)
+            </dt>
+            <dd class = "col-sm-8">
+                @Html.DisplayFor(model => model.Sum)
+            </dd>
+            <dt class = "col-sm-4">
+                @Html.DisplayNameFor(model => model.Name)
+            </dt>
+            <dd class = "col-sm-8">
+                @Html.DisplayFor(model => model.Name)
+            </dd>
+            <dt class = "col-sm-4">
+                @Html.DisplayNameFor(model => model.Description)
+            </dt>
+            <dd class = "col-sm-8">
+                @Html.DisplayFor(model => model.Description)
+            </dd>
+        </dl>
+    </div>
+    <div class="col-md-6">
+        <form asp-action="CreateXML" asp-route-id="@Model?.Id">
+            <input type="submit" value="Создать XML" class="btn btn-success" />
+        </form>
+
+        @if (Model != null)
+        {
+            <table class="table table-bordered">                
+                <tbody>
+                    @foreach (var xmlDoc in Model.XmlDocs.OrderByDescending(m => m.DateAndTime))
+                    {
+                        <tr>
+                            <td>
+                                @Html.DisplayFor(m => xmlDoc.DateAndTime)
+                            </td>
+                            <td>
+                                @Html.DisplayFor(m => xmlDoc.Name)
+                            </td>
+                            <td>
+                                <a asp-action="GetXML" asp-route-id="@Model.Id" asp-route-xmlDocId="@xmlDoc.Id">@xmlDoc.FileName</a>
+                            </td>
+                            <td>
+                                <form asp-action="DeleteXML" asp-route-id="@Model.Id" asp-route-xmlDocId="@xmlDoc.Id">
+                                    <input type="submit" value="X" class="btn btn-danger">
+                                </form>
+                            </td>
+                        </tr>            
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+</div>

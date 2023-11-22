@@ -1,0 +1,122 @@
+﻿@page "/company/{id:int?}"
+@page "/company/index/{id:int?}"
+@using DayDoc.Web.Endpoints.Models;
+@inject IJSRuntime JsRuntime
+@inject NavigationManager Navigation
+@inject ILogger<Index> Logger
+
+@code {
+    [Parameter]
+    public int? Id { get; set; }
+
+    string _title = "Компании";
+    static string _routeEntity = "company";
+
+    // For DisplayName    
+    private readonly Company Model = default!;
+    private List<Company>? _items;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var res = await new CompanyListRequest { }.ExecuteAsync(CancellationToken);
+        _items = res.Companies;
+    }
+
+    string? _alertMsg;
+    bool _alertVisible = false;
+    void ShowAlert(string msg)
+    {
+        _alertMsg = msg;
+        _alertVisible = true;
+    }
+    void OnAlertClose() => _alertVisible = false;
+
+    async Task DeleteConfirm(int id)
+    {
+        var item = _items?.Find(m => m.Id == id);
+        if (item == null)
+            return;
+
+        string name = $"{item.Name}";
+        bool confirmed = await JsRuntime.InvokeAsync<bool>("confirm", $"Вы уверены, что хотите удалить '{name}' ?");
+        if (confirmed)
+        {
+            try
+            {
+                await new CompanyDeleteRequest { Id = id }.ExecuteAsync(CancellationToken);
+                _items?.RemoveAll(m => m.Id == id);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError($"{Navigation.Uri} | {nameof(DeleteConfirm)}: {ex.Message}");
+                ShowAlert(ex.Message);                
+            }
+        }
+    }
+}
+
+<PageTitle>@_title</PageTitle>
+<h1>@_title</h1>
+
+<p>
+    <a href=@($"{_routeEntity}/create") class="btn btn-primary" >+ Добавить</a>
+</p>
+
+<Alert Msg="@_alertMsg" Visible=@_alertVisible OnCloseCallback=@OnAlertClose />
+
+@if (_items == null)
+{
+    <p><em>Загрузка...</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>
+                    <Label For="@(() => Model.Id)" />
+                </th>
+                <th>
+                    <Label For="@(() => Model.Name)" />
+                </th>
+                <th>
+                    <Label For="@(() => Model.Description)" />
+                </th>
+                <th>
+                    <Label For="@(() => Model.INN)" />
+                </th>
+                <th>
+                    <Label For="@(() => Model.EdoCompanyId)" />
+                </th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in _items)
+            {
+                <tr>
+                    <td>
+                        @(item.Id)
+                    </td>
+                    <td class=@(item.CompType != CompType.Customer ? "fw-bold" : null)>
+                        <a href=@($"{_routeEntity}/details/{@item.Id}")>@(item.Name)</a>
+                    </td>
+                    <td>
+                        @(item.Description)
+                    </td>
+                    <td>
+                        @(item.INN)
+                    </td>
+                    <td>
+                        @(item.EdoCompany?.Name)
+                    </td>
+                    <td>
+                        <a href=@($"{_routeEntity}/edit/{@item.Id}")>Edit</a> |
+                        <a href=@($"{_routeEntity}/details/{@item.Id}")>Details</a> |
+                        <a href="" @onclick="() => DeleteConfirm(item.Id)" @onclick:preventDefault>Delete</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}

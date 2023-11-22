@@ -1,0 +1,364 @@
+﻿@page "/doc/create"
+@page "/doc/edit/{id:int}"
+@page "/doc/details/{id:int}"
+@using DayDoc.Web.Endpoints.Models;
+@inject IJSRuntime JsRuntime
+@inject NavigationManager Navigation
+@inject ILogger<Edit> Logger
+
+@code {
+    [Parameter]
+    public int? Id { get; set; }
+
+    string _title = "";
+    static string _titlePrefix = "Документ: ";
+    static string _routeEntity = "doc";
+    static string _parentRoute = $"/{_routeEntity}";
+    static string _afterEditRoute = $"/{_routeEntity}/details";
+
+    Doc? _doc;
+
+    #region Select List Items
+
+    Dictionary<int, string>? _owns;
+    async Task<Dictionary<int, string>?> GetOwnCompanies()
+    {
+        var res = await new CompanyListRequest { CompType = CompType.Own }.ExecuteAsync(CancellationToken);
+        return res?.Companies?.ToDictionary(k => k.Id, v => v.Name);
+    }
+
+    Dictionary<int, string>? _customers;
+    async Task<Dictionary<int, string>?> GetCustomers()
+    {
+        var res = await new CompanyListRequest { CompType = CompType.Customer }.ExecuteAsync(CancellationToken);
+        return res?.Companies?.ToDictionary(k => k.Id, v => v.Name);
+    }
+
+    Dictionary<DocType, string> _docTypes = Enum.GetValues(typeof(DocType))
+        .Cast<DocType>()
+        .ToDictionary(t => t, t => t.ToString());
+
+    List<XmlDoc>? _xmlDocs;
+    async Task<List<XmlDoc>?> GetXMLDocs()
+    {
+        if (_doc == null)
+            return null;
+
+        var resp = await new XmlDocListRequest { DocId = _doc.Id }.ExecuteAsync(CancellationToken);
+        return resp?.XmlDocs;
+    }
+
+    #endregion
+
+    FluentValidationValidator? _fluentValidator;
+
+    EditMode _editMode = EditMode.Details;
+    bool _isReadonly = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _editMode
+            = Navigation.Uri.Contains("create", StringComparison.OrdinalIgnoreCase) ? EditMode.Create
+            : Navigation.Uri.Contains("edit", StringComparison.OrdinalIgnoreCase) ? EditMode.Edit
+            : EditMode.Details;
+
+        _title = _titlePrefix;
+        switch (_editMode)
+        {
+            case EditMode.Create: _title += "Создание"; break;
+            case EditMode.Edit: _title += "Изменение"; break;
+            case EditMode.Details:
+                _title += "Просмотр";
+                _isReadonly = true;
+                break;
+        }
+
+        switch (_editMode)
+        {
+            case EditMode.Create:
+                {
+                    var resp = await new SettingGetDefaultRequest { }.ExecuteAsync(CancellationToken);
+                    var setting = resp.Setting;
+                    _doc = new() { OwnCompanyId = setting?.OwnCompanyId ?? 0, WorkName = setting?.WorkName };
+                    break;
+                }
+
+            case EditMode.Edit:
+            case EditMode.Details:
+                {
+                    if (Id != null)
+                    {
+                        var res = await new DocGetRequest { Id = (int)Id }.ExecuteAsync(CancellationToken);
+                        if (res?.Doc != null)
+                        {
+                            _doc = res.Doc;
+                            _xmlDocs = await GetXMLDocs();
+                        }
+                    }
+                    break;
+                }
+        }
+
+        _owns = await GetOwnCompanies();
+        _customers = await GetCustomers();
+    }
+
+    string? _alertMsg;
+    bool _alertVisible = false;
+    void ShowAlert(string msg)
+    {
+        _alertMsg = msg;
+        _alertVisible = true;
+    }
+    void OnAlertClose() => _alertVisible = false; 
+
+    async Task SubmitAsync()
+    {
+        //Console.WriteLine($"Name: {company.Name}");
+
+        if (_fluentValidator != null && await _fluentValidator.ValidateAsync())
+        {
+            try
+            {                
+                switch (_editMode)
+                {
+                    case EditMode.Create:
+                        {
+                            var res = await new DocsCreateRequest { Doc = _doc }.ExecuteAsync(CancellationToken);                            
+                            Id = res?.Doc?.Id;
+                            Navigation.NavigateTo($"{_afterEditRoute}/{Id}", forceLoad: true);
+                            break;
+                        }
+
+                    case EditMode.Edit:
+                        {
+                            var res = await new DocUpdateRequest { Doc = _doc }.ExecuteAsync(CancellationToken);
+                            Navigation.NavigateTo($"{_afterEditRoute}/{Id}", forceLoad: true);
+                            break;
+                        }
+
+                    case EditMode.Details:
+                        Navigation.NavigateTo($"{_parentRoute}/{Id}");
+                        break;
+                }                
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError($"{Navigation.Uri} | {nameof(SubmitAsync)}: {ex.Message}");
+                ShowAlert(ex.Message);
+                //base.StateHasChanged();
+            }
+        }
+    }
+
+    async Task CreateXML()
+    {
+        if(_doc != null)
+        {
+            try
+            {
+                var resp = await new XmlDocCreateRequest { DocId = _doc.Id }.ExecuteAsync(CancellationToken);
+                if(resp?.XmlDoc != null)
+                {
+                    _xmlDocs = await GetXMLDocs();
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError($"{Navigation.Uri} | {nameof(CreateXML)}: {ex.Message}");
+                ShowAlert(ex.Message);
+                //base.StateHasChanged();
+            }
+        }
+    }
+
+    async Task DeleteXML(int xmlDocId)
+    {
+        if (_doc != null)
+        {
+            bool confirmed = await JsRuntime.InvokeAsync<bool>("confirm", $"Вы уверены, что хотите удалить?");
+            if (confirmed)
+            {
+                try
+                {
+                    await new XmlDocDeleteRequest { DocId = _doc.Id, Id = xmlDocId }.ExecuteAsync(CancellationToken);
+                    _xmlDocs = await GetXMLDocs();
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError($"{Navigation.Uri} | {nameof(DeleteXML)}: {ex.Message}");
+                    ShowAlert(ex.Message);
+                    //base.StateHasChanged();
+                }
+            }
+        }
+    }
+
+    string GetXMLUrl(int xmlDocId)
+    {
+        return $"/api/doc/xmlDocGetFile/{xmlDocId}";
+    }
+}
+
+<PageTitle>@_title</PageTitle>
+<h1>@_title</h1>
+<hr />
+
+<Alert Msg="@_alertMsg" Visible=@_alertVisible OnCloseCallback=@OnAlertClose />
+
+@if(_doc == null)
+{
+    <p><em>Не найдено!</em></p>
+    <a href=@($"{_parentRoute}")>Назад</a>
+}
+else
+{
+<div class="row"> @*justify-content-center*@
+    <div class="col-xl-10 col-md-12">
+        <EditForm Model="@_doc" OnValidSubmit="SubmitAsync">
+
+            @*<div asp-validation-summary="ModelOnly" class="text-danger"></div>*@
+            <FluentValidationValidator @ref="_fluentValidator" DisableAssemblyScanning="@true" />
+            <ValidationSummary class="text-danger" />
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <Label For="() => _doc.DocType" class="form-label"></Label>
+                        <InputSelect readonly="@_isReadonly" @bind-Value="_doc.DocType" class="form-control">
+                            @foreach (var dt in _docTypes)
+                            {
+                                <option value="@dt.Key">@dt.Value</option>
+                            }
+                        </InputSelect>
+                        <ValidationMessage For="@(() => _doc.DocType)" class="text-danger" />
+                    </div>
+                    <div class="mb-3">
+                        <Label For="() => _doc.OwnCompanyId" class="form-label"></Label>
+                        <InputSelect readonly="@_isReadonly" @bind-Value="_doc.OwnCompanyId" class="form-control">
+                            @* <option value="-1">Fail test</option> *@
+                            @if (_owns != null)
+                            {
+                                foreach (var own in _owns)
+                                {
+                                    <option value="@own.Key">@own.Value</option>
+                                }
+                            }
+                        </InputSelect>
+                        <ValidationMessage For="@(() => _doc.OwnCompanyId)" class="text-danger" />
+                    </div>
+                    <div class="mb-3">
+                        <Label For="() => _doc.ContragentId" class="form-label"></Label>
+                        <InputSelect readonly="@_isReadonly" @bind-Value="_doc.ContragentId" class="form-control">
+                            <option value="0" selected="selected">...</option>
+                            @* <option value="-1">Fail test</option> *@
+                            @if (_customers != null)
+                            {
+                                foreach (var cust in _customers)
+                                {
+                                    <option value="@cust.Key">@cust.Value</option>
+                                }
+                            }
+                        </InputSelect>
+                        <ValidationMessage For="@(() => _doc.ContragentId)" class="text-danger" />
+                    </div>
+                    @*<div class="mb-3">
+                    <Label For="() => _doc.Name" class="form-label"></Label>
+                    <InputText readonly="@_isReadonly" @bind-Value="_doc.Name" class="form-control" />
+                    <ValidationMessage For="@(() => _doc.Name)" class="text-danger" />
+                    </div>*@
+                    <div class="mb-3">
+                        <Label For="() => _doc.Description" class="form-label"></Label>
+                        <InputTextArea readonly="@_isReadonly" @bind-Value="_doc.Description" class="form-control" rows="5"></InputTextArea>
+                        <ValidationMessage For="@(() => _doc.Description)" class="text-danger" />
+                    </div>
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <Label For="() => _doc.Dogovor_Num" class="form-label"></Label>
+                                <InputText readonly="@_isReadonly" @bind-Value="_doc.Dogovor_Num" class="form-control" />
+                                <ValidationMessage For="@(() => _doc.Dogovor_Num)" class="text-danger" />
+                            </div>
+                            <div class="mb-3">
+                                <Label For="() => _doc.Dogovor_Date" class="form-label"></Label>
+                                <InputDate readonly="@_isReadonly" @bind-Value="_doc.Dogovor_Date" class="form-control" />
+                                <ValidationMessage For="@(() => _doc.Dogovor_Date)" class="text-danger" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <Label For="() => _doc.Num" class="form-label"></Label>
+                        <InputText readonly="@_isReadonly" @bind-Value="_doc.Num" class="form-control" />
+                        <ValidationMessage For="@(() => _doc.Num)" class="text-danger" />
+                    </div>
+                    <div class="mb-3">
+                        <Label For="() => _doc.Date" class="form-label"></Label>
+                        <InputDate readonly="@_isReadonly" @bind-Value="_doc.Date" class="form-control" />
+                        <ValidationMessage For="@(() => _doc.Date)" class="text-danger" />
+                    </div>
+                    <div class="mb-3">
+                        <Label For="() => _doc.Sum" class="form-label"></Label>
+                        <InputNumber readonly="@_isReadonly" @bind-Value="_doc.Sum" class="form-control" />
+                        <ValidationMessage For="@(() => _doc.Sum)" class="text-danger" />
+                    </div>
+                    <div class="mb-3">
+                        <Label For="() => _doc.WorkName" class="form-label"></Label>
+                        <InputTextArea readonly="@_isReadonly" @bind-Value="_doc.WorkName" class="form-control" rows="5"></InputTextArea>
+                        <ValidationMessage For="@(() => _doc.WorkName)" class="text-danger" />
+                    </div>
+
+                    @if (_editMode == EditMode.Details && _doc != null)
+                    {
+                        <div class="card">
+                            <div class="card-header">
+                                ЭДО Файлы
+                            </div>
+                            <div class="card-body">
+                                <form @onsubmit="CreateXML">
+                                    <input type="submit" value="Создать XML" class="btn btn-success mb-3" />
+                                </form>
+                                @if (_xmlDocs != null)
+                                {
+                                    <table class="table table-bordered">
+                                        <tbody>
+                                            @foreach (var xmlDoc in _xmlDocs)
+                                            {
+                                                <tr>
+                                                    <td>
+                                                        @xmlDoc.DateAndTime
+                                                    </td>
+                                                    <td>
+                                                        @xmlDoc.Name
+                                                    </td>
+                                                    <td>
+                                                        @*
+                                                            // https://stackoverflow.com/questions/68393235/download-file-from-server-with-blazor-app
+                                                            // https://stackoverflow.com/q/68393235
+                                                        *@
+                                                        <a href="@GetXMLUrl(xmlDoc.Id)" download="@xmlDoc.FileName" role="button" target="=_top">@xmlDoc.FileName</a>
+                                                    </td>
+                                                    <td>
+                                                        <button type="button" @onclick="() => DeleteXML(xmlDoc.Id)" class="btn btn-danger">X</button>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div class="my-3">
+                <input type="submit" value="OK" class="btn btn-primary px-4" />
+                <a href=@($"{_parentRoute}/{Id}") class="btn btn-light">Отмена</a>
+            </div>
+        </EditForm>
+    </div>
+</div>
+}
+
