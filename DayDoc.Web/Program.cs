@@ -1,4 +1,4 @@
-global using FluentValidation;
+п»їglobal using FluentValidation;
 
 using FastEndpoints;
 using FastEndpoints.Swagger;
@@ -31,7 +31,7 @@ builder.Services.AddAuthentication(options =>
     options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultSignInScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = IdentityConstants.ApplicationScheme; // для перенаправления на страницу Логина
+    options.DefaultChallengeScheme = IdentityConstants.ApplicationScheme; // РґР»СЏ РїРµСЂРµРЅР°РїСЂР°РІР»РµРЅРёСЏ РЅР° СЃС‚СЂР°РЅРёС†Сѓ Р›РѕРіРёРЅР°
 })
     .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
     {
@@ -68,7 +68,7 @@ builder.Services.AddAuthentication(options =>
 // todo: use refresh token
 // https://alimozdemir.medium.com/asp-net-core-jwt-and-refresh-token-with-httponly-cookies-b1b96c849742
 // https://github.com/alimozdemir/medium/tree/master/AuthJWTRefresh
-// todo: можно убрать Куки-аутентификацию вообще, оставить только bearer через куки
+// todo: РјРѕР¶РЅРѕ СѓР±СЂР°С‚СЊ РљСѓРєРё-Р°СѓС‚РµРЅС‚РёС„РёРєР°С†РёСЋ РІРѕРѕР±С‰Рµ, РѕСЃС‚Р°РІРёС‚СЊ С‚РѕР»СЊРєРѕ bearer С‡РµСЂРµР· РєСѓРєРё
 // https://habr.com/ru/articles/468401/
 // https://learn.microsoft.com/ru-ru/aspnet/core/blazor/security/server/additional-scenarios?view=aspnetcore-7.0
 builder.Services.Configure<CookieAuthenticationOptions>(IdentityConstants.ApplicationScheme, options =>
@@ -127,10 +127,10 @@ builder.Services.AddHttpClient<DayDoc.Web.Endpoints.HttpClients.ApiClient>(/*asy
     client.BaseAddress = new Uri(baseUrl);
 
     /*
-     * В любом случае, не рекомендуется использовать IHttpContextAccessor в Blazor Server, т.к. это не работает в продакшене
+     * Р’ Р»СЋР±РѕРј СЃР»СѓС‡Р°Рµ, РЅРµ СЂРµРєРѕРјРµРЅРґСѓРµС‚СЃСЏ РёСЃРїРѕР»СЊР·РѕРІР°С‚СЊ IHttpContextAccessor РІ Blazor Server, С‚.Рє. СЌС‚Рѕ РЅРµ СЂР°Р±РѕС‚Р°РµС‚ РІ РїСЂРѕРґР°РєС€РµРЅРµ
      * https://learn.microsoft.com/en-us/aspnet/core/fundamentals/http-context?view=aspnetcore-3.1#avoid-ihttpcontextaccessorhttpcontext-in-razor-components-1
-     * Переделал на ApiClientBase.cs
-     * см. настройки генерации Nswag в GenerateCSharpClient
+     * РџРµСЂРµРґРµР»Р°Р» РЅР° ApiClientBase.cs
+     * СЃРј. РЅР°СЃС‚СЂРѕР№РєРё РіРµРЅРµСЂР°С†РёРё Nswag РІ GenerateCSharpClient
      */
 });
 
@@ -142,7 +142,7 @@ builder.Services.AddServerSideBlazor();
 
 builder.Services.AddAuthorization();
 builder.Services.AddSingleton<IAuthorizationMiddlewareResultHandler, MyAuthorizationMiddlewareResultHandler>();
-// После AddRazorPages и AddServerSideBlazor (https://stackoverflow.com/a/65208268)
+// РџРѕСЃР»Рµ AddRazorPages Рё AddServerSideBlazor (https://stackoverflow.com/a/65208268)
 builder.Services.AddScoped<AuthenticationStateProvider, RevalidatingIdentityAuthenticationStateProvider<AppUser>>();
 
 // For Blazored.FluentValidation with <FluentValidationValidator DisableAssemblyScanning="@true" />
@@ -179,7 +179,7 @@ builder.Services.AddTransient<XmlDocService>();
 
 var app = builder.Build();
 
-//app.Environment.EnvironmentName = "Production"; // меняем имя окружения
+//app.Environment.EnvironmentName = "Production"; // РјРµРЅСЏРµРј РёРјСЏ РѕРєСЂСѓР¶РµРЅРёСЏ
 
 // FastEndpoint ExceptionHandler
 app.UseDefaultExceptionHandler();
@@ -219,7 +219,7 @@ app.MapControllerRoute(
 
 app.MapFallbackToPage("/_Host");
 
-// Не используется
+// РќРµ РёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ
 app.MapGet("/Identity/Account/TokenRefresh", async (context) =>
 {
     string? refreshToken = "";
@@ -267,7 +267,7 @@ app.MapGet("/routes", (IEnumerable<EndpointDataSource> endpointSources) =>
     {
         sb.Append(endpoint.DisplayName);
 
-        // получим конечную точку как RouteEndpoint
+        // РїРѕР»СѓС‡РёРј РєРѕРЅРµС‡РЅСѓСЋ С‚РѕС‡РєСѓ РєР°Рє RouteEndpoint
         if (endpoint is RouteEndpoint routeEndpoint)
         {
             sb.Append(" \t ");
@@ -283,11 +283,11 @@ app.MapGet("/routes", (IEnumerable<EndpointDataSource> endpointSources) =>
 
         sb.AppendLine();
 
-        // получение метаданных
-        // данные маршрутизации
+        // РїРѕР»СѓС‡РµРЅРёРµ РјРµС‚Р°РґР°РЅРЅС‹С…
+        // РґР°РЅРЅС‹Рµ РјР°СЂС€СЂСѓС‚РёР·Р°С†РёРё
         // var routeNameMetadata = endpoint.Metadata.OfType<Microsoft.AspNetCore.Routing.RouteNameMetadata>().FirstOrDefault();
         // var routeName = routeNameMetadata?.RouteName;
-        // данные http - поддерживаемые типы запросов
+        // РґР°РЅРЅС‹Рµ http - РїРѕРґРґРµСЂР¶РёРІР°РµРјС‹Рµ С‚РёРїС‹ Р·Р°РїСЂРѕСЃРѕРІ
         //var httpMethodsMetadata = endpoint.Metadata.OfType<HttpMethodMetadata>().FirstOrDefault();
         //var httpMethods = httpMethodsMetadata?.HttpMethods; // [GET, POST, ...]
     }
