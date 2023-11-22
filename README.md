@@ -8,6 +8,8 @@
 
 - C#
 - ASP.NET Core
+- Entity Framework Core
+- SQLite
 - Blazor
 - [FastEndponts](https://github.com/FastEndpoints/FastEndpoints)
 - [Blazored.FluentValidation](https://github.com/Blazored/FluentValidation)
